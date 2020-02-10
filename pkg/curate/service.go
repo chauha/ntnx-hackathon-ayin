@@ -31,7 +31,7 @@ func (cs *CurateClustersService) RunService() error {
 
 func serviceHTTPHandle(w http.ResponseWriter, req *http.Request, cs *CurateClustersService) {
 	log.Printf("serviceHTTPHandle")
-	log.Printf("req.URL.Query %v", req.URL.Query())
+	log.Printf("req.URL.Path %s", req.URL.Path)
 	if req.URL.Path == "/clusters/register/" {
 		var c db.ClusterControllerMetadata
 		err := json.NewDecoder(req.Body).Decode(&c)
@@ -40,7 +40,11 @@ func serviceHTTPHandle(w http.ResponseWriter, req *http.Request, cs *CurateClust
 			return
 		}
 		log.Printf("ClusterControllerMetadata: %+v", c)
-		cs.Db.InsertOrUpdateCluster(&c)
+		err = cs.Db.InsertOrUpdateCluster(&c)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		w.Write([]byte("ok"))
 	} else {
 		http.Error(w, "Path not found", http.StatusNotFound)
