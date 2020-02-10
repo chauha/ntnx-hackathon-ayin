@@ -4,5 +4,11 @@ services:
   curate-clusters-service:
     build:
       context: .
-    ports:
-      - '9090:9090'
+    network_mode: 'host'
+  swagger-ui:
+    image: swaggerapi/swagger-ui:v3.25.0
+    volumes:
+      - ./doc/curate-clusters-service.yml:/api.yaml
+    environment:
+      SWAGGER_JSON: /api.yaml
+    network_mode: 'host'
