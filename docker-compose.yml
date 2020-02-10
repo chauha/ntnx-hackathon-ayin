@@ -1,0 +1,9 @@
+version: "3"
+
+services:
+  curate-clusters-service:
+    build:
+      context: .
+    volumes:
+      - "./pkg:/home/pkg"
+      - "./cmd:/home/cmd"
