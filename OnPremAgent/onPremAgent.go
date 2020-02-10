@@ -16,11 +16,12 @@ import (
 const statusEndpoint = "/status"
 const CCRegisterEndpoint = "/clusters/register/" //Endpoint where this agent registers
 
-type clusterControllerMetadata struct {
-	ID      string // Id of the Cluster
-	Name    string // Name of the Cluster
-	Workers int    // Number of worker nodes
-	Masters int    // Number of Master nodes
+type ClusterControllerMetadata struct {
+	ID            string `json:"id"`         // Id of the Cluster
+	Name          string `json:"name"`       // Name of the Cluster
+	Workers       int    `json:"no_workers"` // Number of worker nodes
+	Masters       int    `json:"no_masters"` // Number of Master nodes
+	NetworkPlugin string `json:"network_plugin,omitempty"`
 }
 
 func main() {
@@ -125,4 +126,3 @@ func executeSysCommand(command string, args []string) string {
 	}
 	return out.String()
 }
-
