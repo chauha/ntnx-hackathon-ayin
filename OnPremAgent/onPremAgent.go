@@ -90,7 +90,7 @@ func regToClusterController() {
 
 	url := server + ":" + port + CCRegisterEndpoint
 	fmt.Println("URL:>", url)
-	var metadata clusterControllerMetadata
+	var metadata ClusterControllerMetadata
 	metadata.ID = executeSysCommand("sudo", []string{"cat", "/sys/class/dmi/id/product_uuid"})
 	metadata.Name = "Demo"
 	metadata.Masters = 1 //TODO strconv.Atoi(executeSysCommand("kubectl", []string{"get", "no"}))
