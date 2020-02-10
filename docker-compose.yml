@@ -1,0 +1,8 @@
+version: "3"
+
+services:
+  curate-clusters-service:
+    build:
+      context: .
+    ports:
+      - '9090:9090'
