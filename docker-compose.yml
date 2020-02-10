@@ -4,6 +4,5 @@ services:
   curate-clusters-service:
     build:
       context: .
-    volumes:
-      - "./pkg:/home/pkg"
-      - "./cmd:/home/cmd"
+    ports:
+      - '9090:9090'
