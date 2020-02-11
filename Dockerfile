@@ -41,6 +41,7 @@ WORKDIR /home
 RUN go mod download
 
 RUN \
-       go build -o ./build/curate-clusters-service ./cmd/curate-clusters-service
+       go build -o ./build/curate-clusters-service ./cmd/curate-clusters-service && \
+       go build -o ./build/on-prem-agent ./cmd/on-prem-agent
 
 CMD ["/home/build/curate-clusters-service"]

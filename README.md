@@ -24,3 +24,10 @@ curl -X POST --data-binary '{"id": "f10868ed-5e17-4846-aca0-a15a0845dc5d", "name
 ```
 curl http://localhost:9090/clusters/
 ```
+
+# Run on-prem-agent
+
+```
+go build -o ./build/on-prem-agent ./cmd/on-prem-agent
+CLUSTER_CONTROLLER_URL=http://localhost CLUSTER_CONTROLLER_PORT=9090 ./build/on-prem-agent
+```

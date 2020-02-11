@@ -8,26 +8,20 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+
+	"github.com/nutanix/ntnx-hackathon-ayin/v1/pkg/db"
 )
 
 const CCRegisterEndpoint = "/clusters/register/"
 
-type ClusterControllerMetadata struct {
-	ID            string `json:"id"`         // Id of the Cluster
-	Name          string `json:"name"`       // Name of the Cluster
-	Workers       int    `json:"no_workers"` // Number of worker nodes
-	Masters       int    `json:"no_masters"` // Number of Master nodes
-	NetworkPlugin string `json:"network_plugin,omitempty"`
-}
-
-//Register cluster to CCP 
+//Register cluster to CCP
 func RegToClusterController() {
 	server := os.Getenv("CLUSTER_CONTROLLER_URL")
 	port := os.Getenv("CLUSTER_CONTROLLER_PORT")
 
 	url := server + ":" + port + CCRegisterEndpoint
 	fmt.Println("URL:>", url)
-	var metadata ClusterControllerMetadata
+	var metadata db.ClusterControllerMetadata
 	metadata.ID = ExecuteSysCommand("sudo", []string{"cat", "/sys/class/dmi/id/product_uuid"})
 	metadata.Name = "Demo"
 	metadata.Masters = 1 //TODO strconv.Atoi(executeSysCommand("kubectl", []string{"get", "no"}))
@@ -50,7 +44,7 @@ func RegToClusterController() {
 	fmt.Println("response Body:", string(body))
 }
 
-//Execute a command 
+//Execute a command
 func ExecuteSysCommand(command string, args []string) string {
 	cmd := exec.Command(command, args...)
 	var out bytes.Buffer
