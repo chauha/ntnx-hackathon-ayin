@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strings"
 
 	"github.com/nutanix/ntnx-hackathon-ayin/v1/pkg/db"
 	"github.com/pkg/errors"
@@ -32,7 +33,17 @@ func (cs *CurateClustersService) RunService() error {
 func serviceHTTPHandle(w http.ResponseWriter, req *http.Request, cs *CurateClustersService) {
 	log.Printf("serviceHTTPHandle")
 	log.Printf("req.URL.Path %s", req.URL.Path)
-	if req.URL.Path == "/clusters/register/" {
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	if req.Method == "OPTIONS" {
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("Access-Control-Max-Age", "86400")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	if strings.HasPrefix(req.URL.Path, "/clusters/register") {
 		var c db.ClusterControllerMetadata
 		err := json.NewDecoder(req.Body).Decode(&c)
 		if err != nil {
@@ -46,6 +57,15 @@ func serviceHTTPHandle(w http.ResponseWriter, req *http.Request, cs *CurateClust
 			return
 		}
 		w.Write([]byte("ok"))
+	} else if strings.HasPrefix(req.URL.Path, "/clusters") {
+		cs, err := cs.Db.ListClusters()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(cs)
 	} else {
 		http.Error(w, "Path not found", http.StatusNotFound)
 	}

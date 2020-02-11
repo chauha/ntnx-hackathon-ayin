@@ -30,6 +30,14 @@ func (fs *FileClusterStorage) InsertOrUpdateCluster(c *ClusterControllerMetadata
 	return fs.updateFile()
 }
 
+func (fs *FileClusterStorage) ListClusters() ([]ClusterControllerMetadata, error) {
+	values := make([]ClusterControllerMetadata, 0, len(fs.data))
+	for _, v := range fs.data {
+		values = append(values, v)
+	}
+	return values, nil
+}
+
 func (fs *FileClusterStorage) Get(id string) *ClusterControllerMetadata {
 	c := fs.data[id]
 	return &c
