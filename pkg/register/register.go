@@ -28,7 +28,7 @@ func RegToClusterController() {
 	url := server + ":" + port + CCRegisterEndpoint
 	fmt.Println("URL:>", url)
 	var metadata ClusterControllerMetadata
-	metadata.ID = executeSysCommand("sudo", []string{"cat", "/sys/class/dmi/id/product_uuid"})
+	metadata.ID = ExecuteSysCommand("sudo", []string{"cat", "/sys/class/dmi/id/product_uuid"})
 	metadata.Name = "Demo"
 	metadata.Masters = 1 //TODO strconv.Atoi(executeSysCommand("kubectl", []string{"get", "no"}))
 	metadata.Workers = 2 //TODO strconv.Atoi(executeSysCommand("/bin/sh", []string{"kubectl", "get", "no", "|", "grep", "--ignore-case", "\"Master\"", "|", "tail", "-n", "+2", "|", "wc", "-l"}))
@@ -50,7 +50,8 @@ func RegToClusterController() {
 	fmt.Println("response Body:", string(body))
 }
 
-func executeSysCommand(command string, args []string) string {
+//Execute a command 
+func ExecuteSysCommand(command string, args []string) string {
 	cmd := exec.Command(command, args...)
 	var out bytes.Buffer
 	var stderr bytes.Buffer

@@ -8,6 +8,8 @@ import (
 
 	"github.com/nutanix/ntnx-hackathon-ayin/v1/pkg/connectAgent"
 	"github.com/nutanix/ntnx-hackathon-ayin/v1/pkg/register"
+	"github.com/nutanix/ntnx-hackathon-ayin/v1/pkg/clusterManager"
+
 )
 
 func handleSignals(c chan os.Signal) {
@@ -23,13 +25,21 @@ func main() {
 	go register.RegToClusterController()
 
 	log.Print("Starting On premise nutanix K8s Connect agent")
+	cm := clusterManager.ClusterManager{
+		PingIntervalInSeconds:     100,
+	}
+	err := cm.RunService()
+	if (err != nil){
+		log.Printf("Error starting cluster Ping %s", err)
+	}
+	
 	ca := connectAgent.ConnectAgent{
 		WebserverPort: "8080",
 	}
 
-	err := ca.RunService()
-	if err != nil {
-		log.Printf("Connect Agent failed to start with error: %+v", err)
+	errC := ca.RunService()
+	if errC != nil {
+		log.Printf("Connect Agent failed to start with error: %+v", errC)
 		os.Exit(1)
 	}
 }
