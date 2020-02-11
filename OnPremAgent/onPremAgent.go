@@ -21,6 +21,9 @@ import (
 const cCRegEndpoint = "/clusters/register/" //Endpoint where this agent registers
 const defaultCCServer = "http://localhost"
 const defaultCCPort = "9090"
+const getMachineUUID = "sudo cat /sys/class/dmi/id/product_uuid"
+const getMasterCMD = "kubectl get no | grep -i \"Master\" | wc -l"
+const getWorkerCMD = "kubectl get no | grep -i -v \"Master\" | tail -n +2 | wc -l"
 
 type ClusterControllerMetadata struct {
 	ID            string `json:"id"`         // Id of the Cluster
@@ -39,8 +42,6 @@ func main() {
 	router.HandleFunc("/status/{resource}", getDeploymentStatusGeneric).Methods("GET")
 	router.HandleFunc("/status/{resource}/{object}", getDeploymentStatus).Methods("GET")
 	router.HandleFunc("/create", createResource).Methods("POST")
-	// router.HandleFunc("/status/{id}", updateEvent).Methods("PATCH")
-	// router.HandleFunc("/status/{id}", deleteEvent).Methods("DELETE")
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
 
@@ -52,7 +53,7 @@ func createResource(w http.ResponseWriter, r *http.Request) {
 	}
 	io.Copy(f, r.Body)
 	result := executeSysCommand("kubectl create -f " + tempFileName)
-	fmt.Println("result ", result)
+	fmt.Println("Result ", result)
 	fmt.Fprintf(w, result)
 }
 
@@ -116,13 +117,13 @@ func regToClusterController() {
 
 	var metadata ClusterControllerMetadata
 	var err error
-	metadata.ID = executeSysCommand("sudo cat /sys/class/dmi/id/product_uuid")
+	metadata.ID = executeSysCommand(getMachineUUID)
 	metadata.Name = "Demo"
-	metadata.Masters, err = strconv.Atoi(executeSysCommand("kubectl get no | grep -i \"Master\" | wc -l"))
+	metadata.Masters, err = strconv.Atoi(executeSysCommand(getMasterCMD))
 	if err != nil {
 		panic(err)
 	}
-	metadata.Workers, err = strconv.Atoi(executeSysCommand("kubectl get no | grep -i -v \"Master\" | tail -n +2 | wc -l"))
+	metadata.Workers, err = strconv.Atoi(executeSysCommand(getWorkerCMD))
 	if err != nil {
 		panic(err)
 	}
@@ -143,26 +144,19 @@ func regToClusterController() {
 	}
 }
 
-// func executeSysCommand(command string, args []string) string {
-// 	cmd := exec.Command(command, args...)
-// 	var out bytes.Buffer
-// 	var stderr bytes.Buffer
-// 	cmd.Stdout = &out
-// 	cmd.Stderr = &stderr
-// 	err := cmd.Run()
-// 	if err != nil {
-// 		fmt.Println(fmt.Sprint(err) + ": " + stderr.String())
-// 		return stderr.String()
-// 	}
-// 	return out.String()
-// }
-
 func executeSysCommand(cmd string) string {
-	out, err := exec.Command("bash", "-c", cmd).Output()
+	command := exec.Command("bash", "-c", cmd)
+	var stdOut bytes.Buffer
+	var stdErr bytes.Buffer
+	command.Stdout = &stdOut
+	command.Stderr = &stdErr
+	err := command.Run()
 	if err != nil {
-		return fmt.Sprintf("Failed to execute command: %s", cmd)
+		fmt.Println(fmt.Sprint(err) + ": " + stdErr.String())
+		return stdErr.String()
+
 	}
-	stringOut := strings.TrimSuffix(string(out), "\n")
+	stringOut := strings.TrimSuffix(stdOut.String(), "\n")
 	return stringOut
 
 }
