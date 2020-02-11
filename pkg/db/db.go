@@ -10,5 +10,6 @@ type ClusterControllerMetadata struct {
 
 type ClusterStorage interface {
 	InsertOrUpdateCluster(c *ClusterControllerMetadata) error
+	ListClusters() ([]ClusterControllerMetadata, error)
 	Get(id string) *ClusterControllerMetadata
 }
