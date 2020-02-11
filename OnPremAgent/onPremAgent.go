@@ -4,17 +4,23 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"os/exec"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 )
 
-const statusEndpoint = "/status"
-const CCRegisterEndpoint = "/clusters/register/" //Endpoint where this agent registers
+const cCRegEndpoint = "/clusters/register/" //Endpoint where this agent registers
+const defaultCCServer = "http://localhost"
+const defaultCCPort = "9090"
 
 type ClusterControllerMetadata struct {
 	ID            string `json:"id"`         // Id of the Cluster
@@ -27,15 +33,27 @@ type ClusterControllerMetadata struct {
 func main() {
 
 	log.SetPrefix(fmt.Sprintf("AYIN OnPremAgent [%v] ", os.Getpid()))
+	go regToClusterController()
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/", homeLink)
 	router.HandleFunc("/status/{resource}", getDeploymentStatusGeneric).Methods("GET")
 	router.HandleFunc("/status/{resource}/{object}", getDeploymentStatus).Methods("GET")
+	router.HandleFunc("/create", createResource).Methods("POST")
 	// router.HandleFunc("/status/{id}", updateEvent).Methods("PATCH")
 	// router.HandleFunc("/status/{id}", deleteEvent).Methods("DELETE")
 	log.Fatal(http.ListenAndServe(":8080", router))
-	go regToClusterController()
+}
 
+func createResource(w http.ResponseWriter, r *http.Request) {
+	tempFileName := "/tmp/" + genFileName()
+	f, err := os.OpenFile(tempFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0755)
+	if err != nil {
+		fmt.Println("Error : ", err)
+	}
+	io.Copy(f, r.Body)
+	result := executeSysCommand("kubectl create -f " + tempFileName)
+	fmt.Println("result ", result)
+	fmt.Fprintf(w, result)
 }
 
 func getDeploymentStatusGeneric(w http.ResponseWriter, r *http.Request) {
@@ -86,43 +104,75 @@ func getStatus(resource string, object string) string {
 
 func regToClusterController() {
 	server := os.Getenv("CLUSTER_CONTROLLER_URL")
+	if server == "" {
+		server = defaultCCServer
+	}
 	port := os.Getenv("CLUSTER_CONTROLLER_PORT")
+	if port == "" {
+		port = defaultCCPort
+	}
 
-	url := server + ":" + port + CCRegisterEndpoint
-	fmt.Println("URL:>", url)
+	url := server + ":" + port + cCRegEndpoint
+
 	var metadata ClusterControllerMetadata
-	metadata.ID = executeSysCommand("sudo", []string{"cat", "/sys/class/dmi/id/product_uuid"})
+	var err error
+	metadata.ID = executeSysCommand("sudo cat /sys/class/dmi/id/product_uuid")
 	metadata.Name = "Demo"
-	metadata.Masters = 1 //TODO strconv.Atoi(executeSysCommand("kubectl", []string{"get", "no"}))
-	metadata.Workers = 2 //TODO strconv.Atoi(executeSysCommand("/bin/sh", []string{"kubectl", "get", "no", "|", "grep", "--ignore-case", "\"Master\"", "|", "tail", "-n", "+2", "|", "wc", "-l"}))
-
-	j, _ := json.Marshal(metadata)
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(j))
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	metadata.Masters, err = strconv.Atoi(executeSysCommand("kubectl get no | grep -i \"Master\" | wc -l"))
 	if err != nil {
 		panic(err)
 	}
-	defer resp.Body.Close()
-
-	fmt.Println("response Status:", resp.Status)
-	fmt.Println("response Headers:", resp.Header)
-	body, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println("response Body:", string(body))
+	metadata.Workers, err = strconv.Atoi(executeSysCommand("kubectl get no | grep -i -v \"Master\" | tail -n +2 | wc -l"))
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("metatdata  ", metadata)
+	j, _ := json.Marshal(metadata)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(j))
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Can't connect to Server")
+	} else {
+		defer resp.Body.Close()
+		fmt.Println("response Status:", resp.Status)
+		fmt.Println("response Headers:", resp.Header)
+		body, _ := ioutil.ReadAll(resp.Body)
+		fmt.Println("response Body:", string(body))
+	}
 }
 
-func executeSysCommand(command string, args []string) string {
-	cmd := exec.Command(command, args...)
-	var out bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &stderr
-	err := cmd.Run()
+// func executeSysCommand(command string, args []string) string {
+// 	cmd := exec.Command(command, args...)
+// 	var out bytes.Buffer
+// 	var stderr bytes.Buffer
+// 	cmd.Stdout = &out
+// 	cmd.Stderr = &stderr
+// 	err := cmd.Run()
+// 	if err != nil {
+// 		fmt.Println(fmt.Sprint(err) + ": " + stderr.String())
+// 		return stderr.String()
+// 	}
+// 	return out.String()
+// }
+
+func executeSysCommand(cmd string) string {
+	out, err := exec.Command("bash", "-c", cmd).Output()
 	if err != nil {
-		fmt.Println(fmt.Sprint(err) + ": " + stderr.String())
-		return stderr.String()
+		return fmt.Sprintf("Failed to execute command: %s", cmd)
 	}
-	return out.String()
+	stringOut := strings.TrimSuffix(string(out), "\n")
+	return stringOut
+
+}
+
+func genFileName() string {
+	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	rand.Seed(time.Now().UnixNano())
+	b := make([]rune, 10)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
 }
