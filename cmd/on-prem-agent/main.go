@@ -23,12 +23,13 @@ func main() {
 
 	log.Print("Starting On premise nutanix K8s Connect agent")
 	cm := clusterManager.ClusterManager{
-		PingIntervalInSeconds: 100,
+		ClusterControllerBaseURL: os.Getenv("CLUSTER_CONTROLLER_BASE_URL"),
+		PingIntervalInSeconds:    100,
 	}
 	go cm.RunService()
 
 	ca := connectAgent.ConnectAgent{
-		WebserverAddress: ":8080",
+		WebserverAddress: ":8091",
 	}
 
 	errC := ca.RunService()

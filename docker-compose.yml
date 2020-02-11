@@ -12,3 +12,10 @@ services:
     environment:
       SWAGGER_JSON: /api.yaml
     network_mode: 'host'
+  on-prem-agent:
+    build:
+      context: .
+    network_mode: 'host'
+    environment:
+      CLUSTER_CONTROLLER_BASE_URL: http://localhost:9090
+    command: /home/build/on-prem-agent

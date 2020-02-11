@@ -10,7 +10,7 @@ go build -o ./build/curate-clusters-service ./cmd/curate-clusters-service
 or
 ```
 docker-compose build
-docker-compose up
+docker-compose up curate-clusters-service
 ```
 
 # Register cluster
@@ -29,5 +29,5 @@ curl http://localhost:9090/clusters/
 
 ```
 go build -o ./build/on-prem-agent ./cmd/on-prem-agent
-CLUSTER_CONTROLLER_URL=http://localhost CLUSTER_CONTROLLER_PORT=9090 ./build/on-prem-agent
+CLUSTER_CONTROLLER_BASE_URL=http://localhost:9090 ./build/on-prem-agent
 ```

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"os/exec"
 	"time"
 
@@ -30,12 +29,13 @@ type Ping struct {
 }
 
 type ClusterManager struct {
-	PingIntervalInSeconds time.Duration
-	lastPingTime          time.Time
+	ClusterControllerBaseURL string
+	PingIntervalInSeconds    time.Duration
+	lastPingTime             time.Time
 }
 
 func (cm *ClusterManager) RunService() error {
-	RegToClusterController()
+	cm.regToClusterController()
 
 	pingStruct := &Ping{}
 	for {
@@ -45,11 +45,9 @@ func (cm *ClusterManager) RunService() error {
 		time.Sleep(cm.PingIntervalInSeconds * time.Second)
 
 	}
-
 }
 
 func updatePingArgs(pingStruct *Ping) {
-
 	id := ExecuteSysCommand("sudo", []string{"cat", "/sys/class/dmi/id/product_uuid"})
 	pingStruct.ID = id
 	pingStruct.Health = "UP"
@@ -58,10 +56,7 @@ func updatePingArgs(pingStruct *Ping) {
 }
 
 func (cm *ClusterManager) pingCloudAgent(pingArgs *Ping) error {
-
-	server := os.Getenv("CLUSTER_CONTROLLER_URL")
-	port := os.Getenv("CLUSTER_CONTROLLER_PORT")
-	url := server + ":" + port + "/ping"
+	url := cm.ClusterControllerBaseURL + "/ping"
 	jBody, _ := json.Marshal(pingArgs)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jBody))
 	req.Header.Set("Content-Type", "application/json")
@@ -77,11 +72,8 @@ func (cm *ClusterManager) pingCloudAgent(pingArgs *Ping) error {
 const CCRegisterEndpoint = "/clusters/register/"
 
 //Register cluster to CCP
-func RegToClusterController() {
-	server := os.Getenv("CLUSTER_CONTROLLER_URL")
-	port := os.Getenv("CLUSTER_CONTROLLER_PORT")
-
-	url := server + ":" + port + CCRegisterEndpoint
+func (cm *ClusterManager) regToClusterController() {
+	url := cm.ClusterControllerBaseURL + CCRegisterEndpoint
 	fmt.Println("URL:>", url)
 	var metadata ClusterControllerMetadata
 	metadata.ID = ExecuteSysCommand("sudo", []string{"cat", "/sys/class/dmi/id/product_uuid"})
