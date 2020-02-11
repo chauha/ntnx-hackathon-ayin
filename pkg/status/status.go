@@ -3,6 +3,7 @@ package status
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"net/http"
 	"os/exec"
 
@@ -35,7 +36,7 @@ func GetStatusGeneric(resource string) string {
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 	if err != nil {
-		fmt.Println(fmt.Sprint(err) + ": " + stderr.String())
+		log.Println(fmt.Sprint(err) + ": " + stderr.String())
 		return stderr.String()
 	}
 	return out.String()
@@ -49,7 +50,7 @@ func GetStatus(resource string, object string) string {
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 	if err != nil {
-		fmt.Println(fmt.Sprint(err) + ": " + stderr.String())
+		log.Println(fmt.Sprint(err) + ": " + stderr.String())
 		return stderr.String()
 	}
 	return out.String()

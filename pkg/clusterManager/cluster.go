@@ -5,8 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"os/exec"
+	"strconv"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -48,11 +51,11 @@ func (cm *ClusterManager) RunService() error {
 }
 
 func updatePingArgs(pingStruct *Ping) {
-	id := ExecuteSysCommand("sudo", []string{"cat", "/sys/class/dmi/id/product_uuid"})
+	id := ExecuteSysCommand(getMachineUUID)
 	pingStruct.ID = id
 	pingStruct.Health = "UP"
-	pingStruct.Masters = 1
-	pingStruct.Workers = 3
+	pingStruct.Masters, _ = strconv.Atoi(ExecuteSysCommand(getMasterCMD))
+	pingStruct.Workers, _ = strconv.Atoi(ExecuteSysCommand(getWorkerCMD))
 }
 
 func (cm *ClusterManager) pingCloudAgent(pingArgs *Ping) error {
@@ -69,46 +72,65 @@ func (cm *ClusterManager) pingCloudAgent(pingArgs *Ping) error {
 	return nil
 }
 
-const CCRegisterEndpoint = "/clusters/register/"
+const cCRegEndpoint = "/clusters/register/" //Endpoint where this agent registers
+const getMachineUUID = "sudo cat /sys/class/dmi/id/product_uuid"
+const getMasterCMD = "kubectl get no | grep -i \"Master\" | wc -l"
+const getWorkerCMD = "kubectl get no | grep -i -v \"Master\" | tail -n +2 | wc -l"
 
 //Register cluster to CCP
 func (cm *ClusterManager) regToClusterController() {
-	url := cm.ClusterControllerBaseURL + CCRegisterEndpoint
-	fmt.Println("URL:>", url)
+	url := cm.ClusterControllerBaseURL + cCRegEndpoint
 	var metadata ClusterControllerMetadata
-	metadata.ID = ExecuteSysCommand("sudo", []string{"cat", "/sys/class/dmi/id/product_uuid"})
+	var err error
+	metadata.ID = ExecuteSysCommand(getMachineUUID)
 	metadata.Name = "Demo"
-	metadata.Masters = 1 //TODO strconv.Atoi(executeSysCommand("kubectl", []string{"get", "no"}))
-	metadata.Workers = 2 //TODO strconv.Atoi(executeSysCommand("/bin/sh", []string{"kubectl", "get", "no", "|", "grep", "--ignore-case", "\"Master\"", "|", "tail", "-n", "+2", "|", "wc", "-l"}))
-
-	j, _ := json.Marshal(metadata)
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(j))
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	metadata.Masters, err = strconv.Atoi(ExecuteSysCommand(getMasterCMD))
 	if err != nil {
 		panic(err)
 	}
-	defer resp.Body.Close()
-
-	fmt.Println("response Status:", resp.Status)
-	fmt.Println("response Headers:", resp.Header)
-	body, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println("response Body:", string(body))
+	metadata.Workers, err = strconv.Atoi(ExecuteSysCommand(getWorkerCMD))
+	if err != nil {
+		panic(err)
+	}
+	j, _ := json.Marshal(metadata)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(j))
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println("Can't connect to Server")
+	} else {
+		defer resp.Body.Close()
+		log.Println("response Status:", resp.Status)
+		log.Println("response Headers:", resp.Header)
+		body, _ := ioutil.ReadAll(resp.Body)
+		log.Println("response Body:", string(body))
+	}
 }
 
 //Execute a command
-func ExecuteSysCommand(command string, args []string) string {
-	cmd := exec.Command(command, args...)
-	var out bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &stderr
-	err := cmd.Run()
+func ExecuteSysCommand(cmd string) string {
+	command := exec.Command("bash", "-c", cmd)
+	var stdOut bytes.Buffer
+	var stdErr bytes.Buffer
+	command.Stdout = &stdOut
+	command.Stderr = &stdErr
+	err := command.Run()
 	if err != nil {
-		fmt.Println(fmt.Sprint(err) + ": " + stderr.String())
-		return stderr.String()
+		log.Println(fmt.Sprint(err) + ": " + stdErr.String())
+		return stdErr.String()
+
 	}
-	return out.String()
+	return strings.TrimSuffix(stdOut.String(), "\n")
+}
+
+// This guy generates a 10 character long random string
+func GenFileName() string {
+	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	rand.Seed(time.Now().UnixNano())
+	b := make([]rune, 10)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
 }
