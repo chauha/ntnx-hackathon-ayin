@@ -8,7 +8,6 @@ import (
 
 	"github.com/nutanix/ntnx-hackathon-ayin/v1/pkg/clusterManager"
 	"github.com/nutanix/ntnx-hackathon-ayin/v1/pkg/connectAgent"
-	"github.com/nutanix/ntnx-hackathon-ayin/v1/pkg/register"
 )
 
 func handleSignals(c chan os.Signal) {
@@ -21,7 +20,6 @@ func main() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGTERM)
 	go handleSignals(c)
-	go register.RegToClusterController()
 
 	log.Print("Starting On premise nutanix K8s Connect agent")
 	cm := clusterManager.ClusterManager{

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/nutanix/ntnx-hackathon-ayin/v1/pkg/clusterManager"
 	"github.com/nutanix/ntnx-hackathon-ayin/v1/pkg/db"
 	"github.com/pkg/errors"
 )
@@ -44,7 +45,7 @@ func serviceHTTPHandle(w http.ResponseWriter, req *http.Request, cs *CurateClust
 	}
 
 	if strings.HasPrefix(req.URL.Path, "/clusters/register") {
-		var c db.ClusterControllerMetadata
+		var c clusterManager.ClusterControllerMetadata
 		err := json.NewDecoder(req.Body).Decode(&c)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)

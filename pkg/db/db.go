@@ -1,15 +1,9 @@
 package db
 
-type ClusterControllerMetadata struct {
-	ID            string `json:"id"`         // Id of the Cluster
-	Name          string `json:"name"`       // Name of the Cluster
-	Workers       int    `json:"no_workers"` // Number of worker nodes
-	Masters       int    `json:"no_masters"` // Number of Master nodes
-	NetworkPlugin string `json:"network_plugin,omitempty"`
-}
+import "github.com/nutanix/ntnx-hackathon-ayin/v1/pkg/clusterManager"
 
 type ClusterStorage interface {
-	InsertOrUpdateCluster(c *ClusterControllerMetadata) error
-	ListClusters() ([]ClusterControllerMetadata, error)
-	Get(id string) *ClusterControllerMetadata
+	InsertOrUpdateCluster(c *clusterManager.ClusterControllerMetadata) error
+	ListClusters() ([]clusterManager.ClusterControllerMetadata, error)
+	Get(id string) *clusterManager.ClusterControllerMetadata
 }
