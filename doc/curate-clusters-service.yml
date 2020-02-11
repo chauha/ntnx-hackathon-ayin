@@ -52,6 +52,32 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/ClusterControllerMetadata"
+  /ping:
+    post:
+      tags:
+        - CurateClusters
+      operationId: pingCluster
+      requestBody:
+        description: Ping
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Ping'
+        required: true
+      responses:
+        5XX:
+          description: unexpected error
+        422:
+          description: Invalid input
+          content: {}
+        401: 
+          description: Unauthorized
+        200: 
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
 components:
   schemas:
     ClusterControllerMetadata:
@@ -72,3 +98,20 @@ components:
           type: integer
         network_plugin:
           type: string
+    Ping:
+      type: object
+      required:
+      - id
+      - health
+      - no_workers
+      - no_masters
+      properties:
+        id:
+          type: string
+        health:
+          type: string
+        no_workers:
+          type: integer
+        no_masters:
+          type: integer
+      
