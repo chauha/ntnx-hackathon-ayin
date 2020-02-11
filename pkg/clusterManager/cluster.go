@@ -14,18 +14,19 @@ import (
 )
 
 type ClusterControllerMetadata struct {
-	ID            string `json:"id"`         // Id of the Cluster
-	Name          string `json:"name"`       // Name of the Cluster
+	ID            string `json:"id"`   // Id of the Cluster
+	Name          string `json:"name"` // Name of the Cluster
+	Health        string `json:"health,omitempty"`
 	Workers       int    `json:"no_workers"` // Number of worker nodes
 	Masters       int    `json:"no_masters"` // Number of Master nodes
 	NetworkPlugin string `json:"network_plugin,omitempty"`
 }
 
 type Ping struct {
-	Id               string `json:"id"`
-	Health           string `json:"health"`
-	NoWorkersRunning int    `json:"noWorkersRunning"`
-	NoMastersRunning int    `json:"noMastersRunning`
+	ID      string `json:"id"` // Id of the Cluster
+	Health  string `json:"health"`
+	Workers int    `json:"no_workers"` // Number of worker nodes
+	Masters int    `json:"no_masters"` // Number of Master nodes
 }
 
 type ClusterManager struct {
@@ -50,10 +51,10 @@ func (cm *ClusterManager) RunService() error {
 func updatePingArgs(pingStruct *Ping) {
 
 	id := ExecuteSysCommand("sudo", []string{"cat", "/sys/class/dmi/id/product_uuid"})
-	pingStruct.Id = id
+	pingStruct.ID = id
 	pingStruct.Health = "UP"
-	pingStruct.NoMastersRunning = 1
-	pingStruct.NoWorkersRunning = 3
+	pingStruct.Masters = 1
+	pingStruct.Workers = 3
 }
 
 func (cm *ClusterManager) pingCloudAgent(pingArgs *Ping) error {

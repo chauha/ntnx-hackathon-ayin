@@ -59,14 +59,37 @@ func serviceHTTPHandle(w http.ResponseWriter, req *http.Request, cs *CurateClust
 		}
 		w.Write([]byte("ok"))
 	} else if strings.HasPrefix(req.URL.Path, "/clusters") {
-		cs, err := cs.Db.ListClusters()
+		c, err := cs.Db.ListClusters()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(cs)
+		_ = json.NewEncoder(w).Encode(c)
+	} else if strings.HasPrefix(req.URL.Path, "/ping") {
+		var p clusterManager.Ping
+		err := json.NewDecoder(req.Body).Decode(&p)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		log.Printf("Ping: %+v", p)
+		c := cs.Db.Get(p.ID)
+		if c != nil {
+			c.Health = p.Health
+			c.Masters = p.Masters
+			c.Workers = p.Workers
+			err = cs.Db.InsertOrUpdateCluster(c)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			w.WriteHeader(http.StatusOK)
+		} else {
+			http.Error(w, "Cluster not found", http.StatusNotFound)
+		}
 	} else {
 		http.Error(w, "Path not found", http.StatusNotFound)
 	}
