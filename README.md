@@ -31,3 +31,10 @@ curl http://localhost:9090/clusters/
 go build -o ./build/on-prem-agent ./cmd/on-prem-agent
 CLUSTER_CONTROLLER_BASE_URL=http://localhost:9090 ./build/on-prem-agent
 ```
+
+# Create and get status
+
+```
+curl -X POST --data-binary @SPEC http://localhost:8091/create
+curl -v http://localhost:8091/status/deployment
+```

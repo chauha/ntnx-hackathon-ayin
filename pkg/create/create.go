@@ -17,7 +17,9 @@ func CreateResource(w http.ResponseWriter, r *http.Request) {
 		log.Println("Error : ", err)
 	}
 	io.Copy(f, r.Body)
-	result := clusterManager.ExecuteSysCommand("kubectl create -f " + tempFileName)
+	result := clusterManager.ExecuteSysCommand("kubectl create -f " + tempFileName + " -o json")
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusCreated)
 	log.Println("Result ", result)
 	fmt.Fprintf(w, result)
 }
